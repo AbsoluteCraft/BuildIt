@@ -1,6 +1,7 @@
 name: BuildIt
 main: com.boveybrawlers.BuildIt.BuildIt
-version: 0.1
+version: 0.9
+softdepend: [AbsoluteCraft]
 commands:
     buildit:
         description: The one and only command for BuildIt

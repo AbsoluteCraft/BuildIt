@@ -2,7 +2,6 @@ package com.boveybrawlers.BuildIt;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -14,34 +13,22 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Team;
 
 import com.boveybrawlers.AbsoluteCraft.AbsoluteCraft;
 
 public class Game implements Listener {
 	public static boolean playing = false;
 	public static ArrayList<Builder> builders = new ArrayList<Builder>();
-	
-	public static Location arenaSpawn = new Location(Bukkit.getWorld("world"), 0, 64, 0);
-	public static Location arenaBuilder = new Location(Bukkit.getWorld("world"), 0, 100, 0);
-	public static Location outsideArena = new Location(Bukkit.getWorld("world"), 50, 64, 0);
+	public static ArrayList<Builder> buildersGone = new ArrayList<Builder>();
 	
 	static List<String> usedWords = new ArrayList<String>();
 	
-	static Integer round = 0;
-	static Integer builderId = 0;
-	static Builder chosen = null;
-	static String word = null;
-	static boolean acceptGuesses = false;
-	static boolean guessed = false;
+	public static QueueHandler queueTask = null;
+	public static boolean queueCountdown = false;
 	
-	static boolean queueTimer = false;
-	static boolean turnTimer = false;
-	static boolean guessTimer = false;
-	
-	static int turnTask;
-	static int sixtyTurnTask;
-	static int thirtyTurnTask;
-	static int tenTurnTask;
+	public static boolean acceptGuesses = false;
 	
 	public static int getBuilderByName(String username) {
         for(Builder builder : builders) {
@@ -64,207 +51,210 @@ public class Game implements Listener {
 	public static void addPlayer(String username) {
 		builders.add(new Builder(username));
 		
+		Player player = builders.get(getBuilderByName(username)).getPlayer();
+		
+		switch(builders.size()) {
+			case 1:
+				BuildIt.plugin.teamOne.addPlayer(player);
+				BuildIt.plugin.teamOne.setDisplayName(player.getName());
+			break;
+			case 2:
+				BuildIt.plugin.teamTwo.addPlayer(player);
+				BuildIt.plugin.teamTwo.setDisplayName(player.getName());
+			break;
+			case 3:
+				BuildIt.plugin.teamThree.addPlayer(player);
+				BuildIt.plugin.teamThree.setDisplayName(player.getName());
+			break;
+			case 4:
+				BuildIt.plugin.teamFour.addPlayer(player);
+				BuildIt.plugin.teamFour.setDisplayName(player.getName());
+			break;
+			case 5:
+				BuildIt.plugin.teamFive.addPlayer(player);
+				BuildIt.plugin.teamFive.setDisplayName(player.getName());
+			break;
+			case 6:
+				BuildIt.plugin.teamSix.addPlayer(player);
+				BuildIt.plugin.teamSix.setDisplayName(player.getName());
+			break;
+			case 7:
+				BuildIt.plugin.teamSeven.addPlayer(player);
+				BuildIt.plugin.teamSeven.setDisplayName(player.getName());
+			break;
+			case 8:
+				BuildIt.plugin.teamEight.addPlayer(player);
+				BuildIt.plugin.teamEight.setDisplayName(player.getName());
+			break;
+			case 9:
+				BuildIt.plugin.teamNine.addPlayer(player);
+				BuildIt.plugin.teamNine.setDisplayName(player.getName());
+			break;
+			case 10:
+				BuildIt.plugin.teamTen.addPlayer(player);
+				BuildIt.plugin.teamTen.setDisplayName(player.getName());
+			break;
+		}
+		
+		player.setScoreboard(BuildIt.plugin.board);
+		BuildIt.plugin.objective.getScore(player.getName()).setScore(0);
+		
+		if(builders.size() == 10) {
+			start();
+			queueTask.cancel();
+		} else if(builders.size() == 2) { // Needs to be 4
+			if(queueCountdown == false) {
+				queueCountdown();
+			}
+		} else if(builders.size() == 1) {
+			if(Bukkit.getWorld("Games") == null) {
+				BuildIt.plugin.getLogger().info("World 'Games' doesn't exist");
+			} else {
+				BuildIt.plugin.world = Bukkit.getWorld("Games");
+			}
+			
+			BuildIt.plugin.lobby = new Location(BuildIt.plugin.world, -197, 71, 1, 90, -30);
+			BuildIt.plugin.spawn = new Location(BuildIt.plugin.world, -229, 79, 1, 90, 0);
+			BuildIt.plugin.builder = new Location(BuildIt.plugin.world, -261, 71, 1, -90, 0);
+
+			BuildIt.plugin.objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+		}
+		
 		Builder builder = builders.get(getBuilderByName(username));
+		if(Bukkit.getWorld("Games") == null) {
+			builder.sendMessage("Can't teleport you because world is null");
+		} else {
+			builder.teleport(BuildIt.plugin.lobby);
+		}
+		builder.setGameMode(0);
 		
-		builder.teleport(arenaSpawn);
-		
-		if(builders.size() == 1 && queueTimer == false) {
-			queueTimer();
-		} else if(builders.size() == 10) {
-			round();
+		for(Builder b : builders) {
+			b.sendMessage(BuildIt.prefix + ChatColor.GREEN + username + " has joined");
 		}
 	}
 	
-	public static void removePlayer(int index, boolean connect) {
+	public static void removePlayer(int index) {
+		BuildIt.plugin.getLogger().info("Removing player " + index);
 		String username = builders.get(index).getName();
 		
-		for(Builder builder: builders) {
-			builder.sendMessage(ChatColor.RED + username + "has left BuildIt!");
+		Player player = builders.get(index).getPlayer();
+		
+		if(playing == true) {
+			Team dead = player.getScoreboard().getPlayerTeam(player);
+			dead.unregister();
 		}
 		
-		if(connect == false && playing == true) {
-			builders.get(index).teleport(outsideArena);
+		player.setScoreboard(BuildIt.plugin.manager.getNewScoreboard());
+		
+		for(Builder builder : builders) {
+			builder.sendMessage(BuildIt.prefix + ChatColor.RED +  username + " has left");
 		}
 		
-		if(playing == true && builders.size() == 1) {
-			for(Builder builder : builders) {
-				builder.sendMessage(BuildIt.prefix + "There are not enough players to continue the game :(");
-				builder.teleport(outsideArena);
-			}
-			builders.clear();
-			playing = false;
-		}
+		builders.get(index).removeInventory();
+		builders.get(index).heal();
+		builders.get(index).teleport(BuildIt.plugin.lobby);
 		
 		builders.remove(index);
-	}
-	
-	public static void round() {
-		round++;
-		if(round == 1) {
-			for(Builder builder : builders) {
-				builder.sendMessage("Round " + round);
-			}
-			build();
-		} else if(round == 2) {
-			if(builderId == builders.size()) {
-				builderId = 0;
-			}
-			build();
-		} else if(round == 3) {
-			for(final Builder builder : builders) {
-				builder.sendMessage(ChatColor.BOLD + "GAME OVER");
-				builder.sendMessage(ChatColor.GREEN + "WINNER: " + ChatColor.BOLD + "winner" + ChatColor.RESET + "[score]");
-				
-				Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-					public void run() {
-						builder.teleport(outsideArena);
-					}
-				}, 100); // 5 second timer
-				
-				AbsoluteCraft.tokens.add(builder.getName(), 3);
-			}
-			builders.clear();
-			playing = false;
-		}
-	}
-	
-	public static void build() {
-		if(word != null) {
-			boolean used = false;
-			do {
-				word = getRandomWord();
-				for(String w : usedWords) {
-					if(word == w) {
-						used = true;
+		
+		if(playing == false) {
+			for(int i = 1; i <= builders.size(); i++) {
+				if(builders.get(i) != null) {
+					Player builderplayer = builders.get(i).getPlayer();
+					switch(i) {
+						case 1:
+							BuildIt.plugin.teamOne.removePlayer(builderplayer);
+							BuildIt.plugin.teamOne.addPlayer(builderplayer);
+							BuildIt.plugin.teamOne.setDisplayName(builderplayer.getName());
+						break;
+						case 2:
+							BuildIt.plugin.teamTwo.removePlayer(builderplayer);
+							BuildIt.plugin.teamTwo.addPlayer(builderplayer);
+							BuildIt.plugin.teamTwo.setDisplayName(builderplayer.getName());
+						break;
+						case 3:
+							BuildIt.plugin.teamThree.removePlayer(builderplayer);
+							BuildIt.plugin.teamThree.addPlayer(builderplayer);
+							BuildIt.plugin.teamThree.setDisplayName(builderplayer.getName());
+						break;
+						case 4:
+							BuildIt.plugin.teamFour.removePlayer(builderplayer);
+							BuildIt.plugin.teamFour.addPlayer(builderplayer);
+							BuildIt.plugin.teamFour.setDisplayName(builderplayer.getName());
+						break;
+						case 5:
+							BuildIt.plugin.teamFive.removePlayer(builderplayer);
+							BuildIt.plugin.teamFive.addPlayer(builderplayer);
+							BuildIt.plugin.teamFive.setDisplayName(builderplayer.getName());
+						break;
+						case 6:
+							BuildIt.plugin.teamSix.removePlayer(builderplayer);
+							BuildIt.plugin.teamSix.addPlayer(builderplayer);
+							BuildIt.plugin.teamSix.setDisplayName(builderplayer.getName());
+						break;
+						case 7:
+							BuildIt.plugin.teamSeven.removePlayer(builderplayer);
+							BuildIt.plugin.teamSeven.addPlayer(builderplayer);
+							BuildIt.plugin.teamSeven.setDisplayName(builderplayer.getName());
+						break;
+						case 8:
+							BuildIt.plugin.teamEight.removePlayer(builderplayer);
+							BuildIt.plugin.teamEight.addPlayer(builderplayer);
+							BuildIt.plugin.teamEight.setDisplayName(builderplayer.getName());
+						break;
+						case 9:
+							BuildIt.plugin.teamNine.removePlayer(builderplayer);
+							BuildIt.plugin.teamNine.addPlayer(builderplayer);
+							BuildIt.plugin.teamNine.setDisplayName(builderplayer.getName());
+						break;
+						case 10:
+							BuildIt.plugin.teamTen.removePlayer(builderplayer);
+							BuildIt.plugin.teamTen.addPlayer(builderplayer);
+							BuildIt.plugin.teamTen.setDisplayName(builderplayer.getName());
 						break;
 					}
 				}
-			} while(used == true);
+			}
 		}
 		
-		if(chosen != null) {
-			chosen.teleport(arenaSpawn);
-			chosen.setFly(false);
-			chosen.setInventory("clear");
+		if(playing == false && builders.size() == 1) {
+			if(queueCountdown == true) {
+				queueTask.cancel();
+			}
 		}
 		
-		builderId++;
-		if(builderId > builders.size()) { // Finished all turns for this round
-			round();
-			return;
-		}
-		if(round == 1) {
-			do {
-				int index = new Random().nextInt(builders.size());
-				chosen = builders.get(index);
-				chosen.setId(builderId);
-			} while(chosen.hasId()); // Makes sure a builder without an ID is chosen for the turn
-			
-			chosen.teleport(arenaBuilder);
-			chosen.setFly(true);
-			chosen.setInventory("blocks");
+		if(playing == true && builders.size() == 1) { // Needs to be 3
+			if(Turn.guessCountdown == true) {
+				Turn.guessTask.cancel();
+			}
 			
 			for(Builder builder : builders) {
-				builder.setGuessed(false);
-				builder.sendMessage(ChatColor.BOLD + chosen.getName() + ChatColor.RESET + " is building this time!");
-				builder.sendMessage("You have" + ChatColor.BOLD +  " 90 seconds" + ChatColor.RESET + " to guess the word!");
+				builder.sendMessage(BuildIt.prefix + ChatColor.RED + "Not enough players to continue");
+				
+				builder.removeInventory();
+				builder.heal();
+				builder.teleport(BuildIt.plugin.lobby);
 			}
 			
-			acceptGuesses = true;
-			chosen.sendMessage(ChatColor.RED + "The word to guess is: " + ChatColor.BOLD + word);
-		} else if(round == 2) {
-			int index = getBuilderById(builderId);
-			chosen = builders.get(index);
-			
-			chosen.teleport(arenaBuilder);
-			chosen.setFly(true);
-			chosen.setInventory("blocks");
-			
-			for(Builder builder : builders) {
-				builder.sendMessage(ChatColor.BOLD + chosen.getName() + ChatColor.RESET + " is building this time!");
-			}
-			
-			acceptGuesses = true;
-			chosen.sendMessage(ChatColor.RED + "The word to guess is: " + ChatColor.BOLD + "$word");
+			// Reset game
+			builders.clear();
+			playing = false;
 		}
 	}
 	
-	public static String getRandomWord() {
-		int index = BuildIt.words.size();
-		Random random = new Random();
-		return BuildIt.words.get(random.nextInt(index));
+	private static void queueCountdown() {
+		queueCountdown = true;
+		queueTask = new QueueHandler(60);
+		queueTask.runTaskTimer(BuildIt.plugin, 0, 20);
 	}
-	
-	public static void queueTimer() {
-		queueTimer = true;
-		Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-			public void run() {
-				queueTimer = false;
-				round();
-			}
-		}, 3600); // 3 minute timer
-	}
-	
-	public static void turnTimer() {
-		turnTimer = true;
-		turnTask = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-			public void run() {
-				turnTimer = false;
-				nextTurn();
-			}
-		}, 1800); // 90 second timer
-		
-		tenTurnTask = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-			public void run() {
-				for(Builder builder : builders) {
-					builder.sendMessage("10 seconds left!");
-				}
-			}
-		}, 1600); // 80 second timer
-		
-		thirtyTurnTask = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-			public void run() {
-				for(Builder builder : builders) {
-					builder.sendMessage("30 seconds left!");
-				}
-			}
-		}, 1200); // 60 second timer
-		
-		sixtyTurnTask = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-			public void run() {
-				for(Builder builder : builders) {
-					builder.sendMessage("60 seconds left!");
-				}
-			}
-		}, 600); // 30 second timer
-	}
-	
-	public static void guessTimer() {
-		guessTimer = true;
+
+	public static void start() {
 		for(Builder builder : builders) {
-			builder.sendMessage("10 seconds left for other guessers!");
-		}
-		turnTask = Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-			public void run() {
-				guessTimer = false;
-				nextTurn();
-			}
-		}, 200); // 10 second timer
-	}
-	
-	public static void nextTurn() {
-		acceptGuesses = false;
-		
-		for(Builder builder: builders) {
-			builder.sendMessage(ChatColor.GREEN + "The word was: " + ChatColor.BOLD + word);
-			builder.sendMessage("Next round starting in 5 seconds");
+			builder.teleport(BuildIt.plugin.spawn);
+			builder.removeInventory();
 		}
 		
-		Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(BuildIt.plugin, new Runnable() {
-			public void run() {
-				build();
-			}
-		}, 100); // 5 second timer
+		playing = true;
+		Round.next();
 	}
 	
 	@EventHandler
@@ -277,10 +267,12 @@ public class Game implements Listener {
 				Builder guesser = builders.get(getBuilderByName(player.getName()));
 				String guess = event.getMessage();
 				
-				if(player.getName() == chosen.getName()) {
-					player.sendMessage("You can't chat while being the builder");
-					event.setCancelled(true);
-					return;
+				if(Turn.chosen != null) {
+					if(player.getName() == Turn.chosen.getName()) {
+						player.sendMessage(BuildIt.prefix + "You can't chat while being the builder");
+						event.setCancelled(true);
+						return;
+					}
 				}
 				
 				if(guesser.hasGuessed() == true) {
@@ -289,49 +281,67 @@ public class Game implements Listener {
 					return;
 				}
 				
-				for(Builder builder: builders) {
-					builder.sendMessage(ChatColor.BOLD + player.getName() + ChatColor.RESET + ChatColor.GRAY + ": " + ChatColor.WHITE + guess);
-				}
-				
-				if(guess.equalsIgnoreCase(word)) {
-					if(guessed == true) {
-						guesser.addScore(3);
+				if(guess.equalsIgnoreCase(Turn.word)) {
+					if(Turn.guessed == false) {
 						for(Builder builder : builders) {
-							builder.sendMessage(ChatColor.BOLD + player.getName() + ChatColor.RESET + ChatColor.GREEN + " has found the word! " + ChatColor.RESET + "[+3]");
-							AbsoluteCraft.tokens.add(builder.getName(), 3);
+							builder.sendMessage(BuildIt.prefix + ChatColor.GOLD + player.getName() + ChatColor.WHITE + " has guessed the word! " + ChatColor.RESET + ChatColor.GREEN + "[+3]");
 						}
+						
+						AbsoluteCraft.tokens.add(player.getName(), 3);
+						AbsoluteCraft.leaderboard.add(player.getName(), "buildit", 3);
+						guesser.addScore(3);
+						
+						AbsoluteCraft.tokens.add(Turn.chosen.getName(), 2);
+						AbsoluteCraft.leaderboard.add(Turn.chosen.getName(), "buildit", 2);
+						Turn.chosen.addScore(2);
+						
+						Turn.guessTask.cancel();
+						Turn.guessCountdown = false;
+						
+						Turn.shortGuessCountdown();
+						
+						Turn.guessed = true;
 					} else {
 						guesser.addScore(1);
 						for(Builder builder : builders) {
-							builder.sendMessage(ChatColor.BOLD + player.getName() + ChatColor.RESET + ChatColor.GREEN + " has found the word! " + ChatColor.RESET + "[+1]");
-							AbsoluteCraft.tokens.add(builder.getName(), 1);
+							builder.sendMessage(BuildIt.prefix + ChatColor.GOLD + player.getName() + ChatColor.WHITE + " has also guessed the word! " + ChatColor.RESET + ChatColor.GREEN + "[+1]");
 						}
+						
+						AbsoluteCraft.tokens.add(player.getName(), 1);
+						AbsoluteCraft.leaderboard.add(player.getName(), "buildit", 1);
+						Turn.chosen.addScore(1);
 					}
+					
+					AbsoluteCraft.leaderboard.add(player.getName(), "buildit", 1);
 					
 					guesser.setGuessed(true);
 					
-					player.getWorld().playSound(player.getLocation(), Sound.ANVIL_LAND, 1, 1);
+					player.getWorld().playSound(player.getLocation(), Sound.ANVIL_LAND, 5, 1);
 					
-					Bukkit.getScheduler().cancelTask(turnTask);
-					turnTimer = false;
-					guessTimer();
+					event.setCancelled(true);
+					return;
+				} else {
+					for(Builder builder: builders) {
+						builder.sendMessage(BuildIt.prefix + ChatColor.BOLD + player.getName() + ChatColor.RESET + ChatColor.GRAY + ": " + ChatColor.WHITE + guess);
+					}
 				}
-				event.setCancelled(true);
 			}
+			event.setCancelled(true);
+			return;
 		}
 	}
-	
+
 	@EventHandler
-    public void onPlayerCommand(PlayerCommandPreprocessEvent event){
+    public void onCommandType(PlayerCommandPreprocessEvent event){
         Player player = event.getPlayer();
         String msg = event.getMessage();
         
         if(playing == true && (!player.isOp() || !player.hasPermission("buildit.admin"))) {
 	        int index = getBuilderByName(player.getName());
 	        if (index != -1) {
-	        	if(msg.matches("/buildit leave")) {
+	        	if(msg.contains("/buildit leave")) {
 	        		return;
-	        	} else if (msg.matches("/")){
+	        	} else if (msg.startsWith("/")){
 	                player.sendMessage(BuildIt.prefix + ChatColor.RED + " You cannot use commands whilst playing!");
 	                event.setCancelled(true);
 	            }
@@ -342,9 +352,10 @@ public class Game implements Listener {
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		Player player = event.getPlayer();
+		
 		int index = getBuilderByName(player.getName());
 		if(index != -1) {
-			removePlayer(index, true);
+			removePlayer(index);
 		}
 	}
 }
