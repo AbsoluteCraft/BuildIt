@@ -102,7 +102,7 @@ public class Game implements Listener {
 		if(builders.size() == 10) {
 			start();
 			queueTask.cancel();
-		} else if(builders.size() == 2) { // Needs to be 4
+		} else if(builders.size() == 4) {
 			if(queueCountdown == false) {
 				queueCountdown();
 			}
@@ -157,10 +157,6 @@ public class Game implements Listener {
 //			hologram.appendTextLine(BuildIt.prefix + ChatColor.WHITE + builders.size() + " / 10 Players");
 //		}
 		
-		for(Builder builder : builders) {
-			builder.sendMessage(BuildIt.prefix + ChatColor.RED +  username + " has left");
-		}
-		
 		builders.get(index).removeInventory();
 		builders.get(index).heal();
 		builders.get(index).setFly(false);
@@ -168,6 +164,10 @@ public class Game implements Listener {
 		builders.get(index).getPlayer().setLevel(0);
 		
 		builders.remove(index);
+		
+		for(Builder builder : builders) {
+			builder.sendMessage(BuildIt.prefix + ChatColor.RED +  username + " has left");
+		}
 		
 		if(playing == false) {
 			for(int i = 1; i < builders.size(); i++) {
@@ -232,10 +232,11 @@ public class Game implements Listener {
 		if(playing == false && builders.size() == 1) {
 			if(queueCountdown == true) {
 				queueTask.cancel();
+				queueCountdown = false;
 			}
 		}
 		
-		if(ending == false && playing == true && builders.size() == 1) { // Needs to be 3
+		if(ending == false && playing == true && builders.size() == 3) {
 			if(Turn.guessCountdown == true) {
 				Turn.guessTask.cancel();
 			}

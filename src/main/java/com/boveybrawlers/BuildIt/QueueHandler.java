@@ -20,6 +20,5 @@ public class QueueHandler extends BukkitRunnable {
 			}
 		}
 		this.time--;
-	}
-	
+	}	
 }
