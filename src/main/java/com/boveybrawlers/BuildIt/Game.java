@@ -6,13 +6,19 @@ import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Team;
 
@@ -116,7 +122,7 @@ public class Game implements Listener {
 			BuildIt.plugin.lobby = new Location(BuildIt.plugin.world, -197, 71, 1, 90, -30);
 			BuildIt.plugin.spawn = new Location(BuildIt.plugin.world, -229, 79, 1, 90, 0);
 			BuildIt.plugin.builder = new Location(BuildIt.plugin.world, -261, 71, 1, -90, 0);
-			BuildIt.plugin.minBuildArea = new Location(BuildIt.plugin.world, -250, 71, 10);
+			BuildIt.plugin.minBuildArea = new Location(BuildIt.plugin.world, -251, 71, 11);
 			BuildIt.plugin.maxBuildArea = new Location(BuildIt.plugin.world, -271, 101, -9);
 
 			BuildIt.plugin.objective.setDisplaySlot(DisplaySlot.SIDEBAR);
@@ -240,6 +246,9 @@ public class Game implements Listener {
 			if(Turn.guessCountdown == true) {
 				Turn.guessTask.cancel();
 			}
+			if(Turn.shortGuessCountdown == true) {
+				Turn.shortGuessCountdown();
+			}
 			
 			for(Builder builder : builders) {
 				builder.sendMessage(BuildIt.prefix + ChatColor.RED + "Not enough players to continue");
@@ -268,6 +277,7 @@ public class Game implements Listener {
 		}
 		
 		playing = true;
+		Turn.resetBuildArea();
 		Round.next();
 	}
 	
@@ -362,6 +372,43 @@ public class Game implements Listener {
 	        }
         }
     }
+	
+	@SuppressWarnings("deprecation")
+	@EventHandler
+	public void onPlayerPlaceBlock(BlockPlaceEvent event) {
+		if(playing == true) {
+			if(getBuilderByName(event.getPlayer().getName()) != -1) {
+				event.getPlayer().getInventory().addItem(new ItemStack(event.getBlockPlaced().getType(), 1, event.getBlockPlaced().getData()));
+			}
+		}
+	}
+	
+	@EventHandler
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		BuildIt.plugin.getLogger().info(event.getAction().toString());
+		if(playing == true && event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
+			if(getBuilderByName(event.getPlayer().getName()) != -1) {
+				Builder builder = builders.get(getBuilderByName(event.getPlayer().getName()));
+				if(Turn.chosen.getName() == builder.getName()) {
+					event.getClickedBlock().setType(Material.AIR);
+					BuildIt.plugin.getLogger().info("Replacing block");
+				} else {
+					BuildIt.plugin.getLogger().info("Player isn't Turn.chosen");
+				}
+			} else {
+				BuildIt.plugin.getLogger().info("Player isn't in builders");
+			}
+		} else {
+			BuildIt.plugin.getLogger().info("Not playing or not left click");
+		}
+	}
+	
+	@EventHandler
+	public void onPlayerDropItem(PlayerDropItemEvent event){
+		if(getBuilderByName(event.getPlayer().getName()) != -1) {
+			event.setCancelled(true);
+		}
+	}
 	
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event) {

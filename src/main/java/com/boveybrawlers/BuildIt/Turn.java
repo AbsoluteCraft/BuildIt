@@ -70,8 +70,7 @@ public class Turn {
 		Turn.chosen.teleport(BuildIt.plugin.spawn);
 		
 		for(Builder builder : Game.builders) {
-			builder.sendMessage(BuildIt.prefix + ChatColor.GREEN + "The word was " + ChatColor.BOLD + word);
-			builder.sendMessage(BuildIt.prefix + ChatColor.YELLOW + "Next round starting in 5 seconds");
+			builder.sendMessage(BuildIt.prefix + ChatColor.YELLOW + "END OF TURN - " + ChatColor.GREEN + "The word was " + ChatColor.BOLD + word);
 		}
 		
 		word = null;
@@ -83,21 +82,31 @@ public class Turn {
 			public void run() {
 				Turn.next();
 			}
-		}, 100); // 5 second timer
+		}, 60); // 3 second timer
 	}
 	
 	public static void resetBuildArea() {
+		BuildIt.plugin.getLogger().info("Resetting build area");
 		Location min = BuildIt.plugin.minBuildArea;
 		Location max = BuildIt.plugin.maxBuildArea;
-	    for (int x = min.getBlockX(); x <= max.getBlockX(); x++) {
-	        for (int y = min.getBlockY(); y <= max.getBlockY(); y++) {
-	            for (int z = min.getBlockZ(); z <= max.getBlockZ(); z++) {
-	                Block block = min.getWorld().getBlockAt(new Location(min.getWorld(), x, y, z));
-	                BuildIt.plugin.getLogger().info(block.getX() + " " + block.getY() + " " + block.getZ());
-	                block.setType(Material.AIR);
-	            }
-	        }
-	    }
+ 
+        int topBlockX = (min.getBlockX() < max.getBlockX() ? max.getBlockX() : min.getBlockX());
+        int bottomBlockX = (min.getBlockX() > max.getBlockX() ? max.getBlockX() : min.getBlockX());
+ 
+        int topBlockY = (min.getBlockY() < max.getBlockY() ? max.getBlockY() : min.getBlockY());
+        int bottomBlockY = (min.getBlockY() > max.getBlockY() ? max.getBlockY() : min.getBlockY());
+ 
+        int topBlockZ = (min.getBlockZ() < max.getBlockZ() ? max.getBlockZ() : min.getBlockZ());
+        int bottomBlockZ = (min.getBlockZ() > max.getBlockZ() ? max.getBlockZ() : min.getBlockZ());
+ 
+        for(int x = bottomBlockX; x <= topBlockX; x++) {
+            for(int z = bottomBlockZ; z <= topBlockZ; z++) {
+                for(int y = bottomBlockY; y <= topBlockY; y++) {
+                    Block block = min.getWorld().getBlockAt(x, y, z);
+                    block.setType(Material.AIR);
+                }
+            }
+        }
 	}
 	
 	private static String getRandomWord() {

@@ -54,7 +54,9 @@ public class Round {
 			Game.buildersGone.clear();
 			
 			for(int i = 0; i < Game.builders.size(); i++) {
-				Game.removePlayer(i, true);
+				if(Game.builders.get(i) != null) {
+					Game.removePlayer(i, true);
+				}
 			}
 			Game.playing = false;
 		}

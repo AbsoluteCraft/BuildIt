@@ -77,7 +77,6 @@ public class BuildIt extends JavaPlugin {
 		
 		this.getCommand("buildit").setExecutor(new Commands());
 		getServer().getPluginManager().registerEvents(new Game(), this);
-		getServer().getPluginManager().registerEvents(new Arena(), this);
 	}
 	
 	@Override
