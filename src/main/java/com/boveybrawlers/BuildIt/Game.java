@@ -245,21 +245,19 @@ public class Game implements Listener {
 		if(ending == false && playing == true && builders.size() == 3) {
 			if(Turn.guessCountdown == true) {
 				Turn.guessTask.cancel();
+				Turn.guessCountdown = false;
 			}
 			if(Turn.shortGuessCountdown == true) {
 				Turn.shortGuessCountdown();
+				Turn.shortGuessCountdown = false;
 			}
 			
 			for(Builder builder : builders) {
 				builder.sendMessage(BuildIt.prefix + ChatColor.RED + "Not enough players to continue");
 				
-				builder.removeInventory();
-				builder.heal();
-				builder.teleport(BuildIt.plugin.lobby);
+				builders.remove(builder);
 			}
 			
-			// Reset game
-			builders.clear();
 			playing = false;
 		}
 	}
@@ -390,16 +388,11 @@ public class Game implements Listener {
 			if(getBuilderByName(event.getPlayer().getName()) != -1) {
 				Builder builder = builders.get(getBuilderByName(event.getPlayer().getName()));
 				if(Turn.chosen.getName() == builder.getName()) {
-					event.getClickedBlock().setType(Material.AIR);
-					BuildIt.plugin.getLogger().info("Replacing block");
-				} else {
-					BuildIt.plugin.getLogger().info("Player isn't Turn.chosen");
+					if(event.getClickedBlock().getY() > 70 && event.getClickedBlock().getY() < 102) {
+						event.getClickedBlock().setType(Material.AIR);
+					}
 				}
-			} else {
-				BuildIt.plugin.getLogger().info("Player isn't in builders");
 			}
-		} else {
-			BuildIt.plugin.getLogger().info("Not playing or not left click");
 		}
 	}
 	

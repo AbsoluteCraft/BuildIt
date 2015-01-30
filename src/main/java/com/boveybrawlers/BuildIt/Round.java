@@ -53,6 +53,15 @@ public class Round {
 			Game.usedWords.clear();
 			Game.buildersGone.clear();
 			
+			if(Turn.guessCountdown == true) {
+				Turn.guessTask.cancel();
+				Turn.guessCountdown = false;
+			}
+			if(Turn.shortGuessCountdown == true) {
+				Turn.shortGuessCountdown();
+				Turn.shortGuessCountdown = false;
+			}
+			
 			for(int i = 0; i < Game.builders.size(); i++) {
 				if(Game.builders.get(i) != null) {
 					Game.removePlayer(i, true);
