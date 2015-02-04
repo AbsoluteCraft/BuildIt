@@ -39,6 +39,10 @@ public class Commands implements CommandExecutor {
 							Game.removePlayer(index, false);
 						}
 						return true;
+					} else if(args[0].equalsIgnoreCase("start") && player.isOp()) {
+						if(Game.queueCountdown == true) {
+							Game.queueTask.time = 1;
+						}
 					}
 				}
 			}

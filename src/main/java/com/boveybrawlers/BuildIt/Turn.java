@@ -24,23 +24,26 @@ public class Turn {
 	public static void next() {
 		number++;
 		
-		if(number == Game.builders.size()) {
+		if(Game.buildersAtStart > Game.builders.size()) {
+			if(number == Game.builders.size() + Game.turnDiff) {
+				Round.next();
+				return;
+			}
+		} else if(number == Game.builders.size()) {
 			Round.next();
 			return;
 		}
 		
-		if(Round.number == 0) {
-			do {
-				int index = new Random().nextInt(Game.builders.size());
-				chosen = Game.builders.get(index);
-				chosen.setId(index);
-			} while(Game.buildersGone.contains(chosen)); // Makes sure a builder without an ID is chosen for the turn
-			
-			Game.buildersGone.add(chosen);
-		} else {
-			BuildIt.plugin.getLogger().info("Round 2 - Selecting Player" + number);
-			chosen = Game.builders.get(Game.getBuilderById(number));
-		}
+		do {
+			int rand = new Random().nextInt(Game.builders.size());
+			chosen = Game.builders.get(rand);
+		} while(Game.buildersGone.contains(chosen)); // Makes sure a builder without an ID is chosen for the turn
+		
+		Game.buildersGone.add(chosen);
+		
+		Turn.chosen.setBuilt(true);
+		
+		BuildIt.plugin.getLogger().info("Round " + Round.number + " -- Turn " + number + " Builder: " + Turn.chosen.getName());
 		
 		do {
 			word = getRandomWord();
@@ -65,12 +68,16 @@ public class Turn {
 	public static void end() {
 		Game.acceptGuesses = false;
 		
-		Turn.chosen.removeInventory();
-		Turn.chosen.setFly(false);
-		Turn.chosen.teleport(BuildIt.plugin.spawn);
+		if(Turn.chosen != null) {
+			Turn.chosen.removeInventory();
+			Turn.chosen.setFly(false);
+			Turn.chosen.teleport(BuildIt.plugin.spawn);
+		}
 		
-		for(Builder builder : Game.builders) {
-			builder.sendMessage(BuildIt.prefix + ChatColor.YELLOW + "END OF TURN - " + ChatColor.GREEN + "The word was " + ChatColor.BOLD + word);
+		if(word != null) {
+			for(Builder builder : Game.builders) {
+				builder.sendMessage(BuildIt.prefix + ChatColor.YELLOW + "END OF TURN - " + ChatColor.GREEN + "The word was " + ChatColor.BOLD + word);
+			}
 		}
 		
 		word = null;
@@ -86,7 +93,6 @@ public class Turn {
 	}
 	
 	public static void resetBuildArea() {
-		BuildIt.plugin.getLogger().info("Resetting build area");
 		Location min = BuildIt.plugin.minBuildArea;
 		Location max = BuildIt.plugin.maxBuildArea;
  

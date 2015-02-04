@@ -12,6 +12,7 @@ public class Builder {
 	Integer score = 0;
 	Integer id = null;
 	boolean guessed = false;
+	boolean built = false;
 	
 	public Builder(String username) {
 		this.username = username;
@@ -96,6 +97,14 @@ public class Builder {
 	
 	public Integer getId() {
 		return this.id;
+	}
+	
+	public void setBuilt(boolean built) {
+		this.built = built;
+	}
+	
+	public boolean hasBuilt() {
+		return this.built;
 	}
 
 	public void setFly(boolean mode) {

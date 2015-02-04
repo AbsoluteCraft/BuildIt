@@ -3,10 +3,14 @@ package com.boveybrawlers.BuildIt;
 import java.util.ArrayList;
 
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.Team;
 
 public class Round {
 	public static Integer number = -1;
 	
+	@SuppressWarnings("deprecation")
 	public static void next() {
 		number++;
 		if(number == 0) {			
@@ -16,12 +20,13 @@ public class Round {
 			
 			Turn.next();
 		} else if(number == 1) {
-			for(Builder builder: Game.builders) {
-				builder.sendMessage(BuildIt.prefix + ChatColor.DARK_PURPLE + "Round 2 / 2");
-			}
+			Turn.number = -1;
+			Game.buildersGone.clear();
+			Game.turnDiff = 0;
 			
-			if(Turn.number == Game.builders.size()) {
-				Turn.number = -1;
+			for(Builder builder: Game.builders) {
+				builder.setBuilt(false);
+				builder.sendMessage(BuildIt.prefix + ChatColor.DARK_PURPLE + "Round 2 / 2");
 			}
 			
 			Turn.next();
@@ -63,10 +68,30 @@ public class Round {
 			}
 			
 			for(int i = 0; i < Game.builders.size(); i++) {
-				if(Game.builders.get(i) != null) {
-					Game.removePlayer(i, true);
+				Player player = Game.builders.get(i).getPlayer();
+					
+				Team dead = player.getScoreboard().getPlayerTeam(player);
+				if(dead != null) {
+					dead.removePlayer(player);
+					dead.setDisplayName("");
+					dead.setPrefix("");
 				}
+				
+				for(OfflinePlayer p : BuildIt.plugin.board.getPlayers()) {
+					if(p.isOnline()) {
+						((Player) p).setScoreboard(BuildIt.plugin.manager.getNewScoreboard());
+					}
+			        BuildIt.plugin.board.resetScores(p);
+				}
+				
+				Game.builders.get(i).removeInventory();
+				Game.builders.get(i).heal();
+				Game.builders.get(i).setFly(false);
+				Game.builders.get(i).teleport(BuildIt.plugin.lobby);
+				Game.builders.get(i).getPlayer().setLevel(0);
 			}
+			
+			Game.builders.clear();
 			Game.playing = false;
 		}
 	}

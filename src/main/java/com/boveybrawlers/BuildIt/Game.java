@@ -28,6 +28,8 @@ public class Game implements Listener {
 	public static boolean playing = false;
 	public static ArrayList<Builder> builders = new ArrayList<Builder>();
 	public static ArrayList<Builder> buildersGone = new ArrayList<Builder>();
+	public static int buildersAtStart = 0;
+	public static int turnDiff = 0;
 	
 	static List<String> usedWords = new ArrayList<String>();
 	
@@ -47,8 +49,10 @@ public class Game implements Listener {
 	
 	public static int getBuilderById(Integer id) {
 		for(Builder builder : builders) {
-			if(builder.getId().equals(id)) {
-				return builders.indexOf(builder);
+			if(builder != null && builder.hasId()) {
+				if(builder.getId().equals(id)) {
+					return builders.indexOf(builder);
+				}
 			}
 		}
 		return -1;
@@ -63,42 +67,52 @@ public class Game implements Listener {
 			case 1:
 				BuildIt.plugin.teamOne.addPlayer(player);
 				BuildIt.plugin.teamOne.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 2:
 				BuildIt.plugin.teamTwo.addPlayer(player);
 				BuildIt.plugin.teamTwo.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 3:
 				BuildIt.plugin.teamThree.addPlayer(player);
 				BuildIt.plugin.teamThree.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 4:
 				BuildIt.plugin.teamFour.addPlayer(player);
 				BuildIt.plugin.teamFour.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 5:
 				BuildIt.plugin.teamFive.addPlayer(player);
 				BuildIt.plugin.teamFive.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 6:
 				BuildIt.plugin.teamSix.addPlayer(player);
 				BuildIt.plugin.teamSix.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 7:
 				BuildIt.plugin.teamSeven.addPlayer(player);
 				BuildIt.plugin.teamSeven.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 8:
 				BuildIt.plugin.teamEight.addPlayer(player);
 				BuildIt.plugin.teamEight.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 9:
 				BuildIt.plugin.teamNine.addPlayer(player);
 				BuildIt.plugin.teamNine.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 			case 10:
 				BuildIt.plugin.teamTen.addPlayer(player);
 				BuildIt.plugin.teamTen.setDisplayName(player.getName());
+				BuildIt.plugin.teamOne.setPrefix("");
 			break;
 		}
 		
@@ -142,26 +156,19 @@ public class Game implements Listener {
 	}
 	
 	public static void removePlayer(int index, boolean ending) {
-		BuildIt.plugin.getLogger().info("Removing player " + index);
 		String username = builders.get(index).getName();
 		
 		Player player = builders.get(index).getPlayer();
 		
 		if(playing == true) {
 			Team dead = player.getScoreboard().getPlayerTeam(player);
-			dead.unregister();
+			if(dead != null) {
+				dead.removePlayer(player);
+				dead.setPrefix(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "");
+			}
 		}
 		
 		player.setScoreboard(BuildIt.plugin.manager.getNewScoreboard());
-		
-//		if(BuildIt.useHolographicDisplays) {
-//			if(hologram == null) {
-//				Location where = new Location(BuildIt.plugin.world, -197.5, 73.5, 0);
-//				hologram = HologramsAPI.createHologram(BuildIt.plugin, where);
-//			}
-//			
-//			hologram.appendTextLine(BuildIt.prefix + ChatColor.WHITE + builders.size() + " / 10 Players");
-//		}
 		
 		builders.get(index).removeInventory();
 		builders.get(index).heal();
@@ -169,10 +176,28 @@ public class Game implements Listener {
 		builders.get(index).teleport(BuildIt.plugin.lobby);
 		builders.get(index).getPlayer().setLevel(0);
 		
+		if(builders.get(index).hasBuilt()) {
+			turnDiff++;
+		}
+		
+		
+		if(playing == true) {
+			if(Turn.chosen.getName().equals(builders.get(index).getName())) {
+				if(Turn.guessCountdown == true) {
+					Turn.guessTask.time = 1;
+				}
+				if(Turn.shortGuessCountdown == true) {
+					Turn.shortGuessTask.time = 1;
+				}
+			}
+		}
+		
 		builders.remove(index);
 		
-		for(Builder builder : builders) {
-			builder.sendMessage(BuildIt.prefix + ChatColor.RED +  username + " has left");
+		if(ending == false) {
+			for(Builder builder : builders) {
+				builder.sendMessage(BuildIt.prefix + ChatColor.RED +  username + " has left");
+			}
 		}
 		
 		if(playing == false) {
@@ -235,7 +260,7 @@ public class Game implements Listener {
 			}
 		}
 		
-		if(playing == false && builders.size() == 1) {
+		if(ending == false && playing == false && builders.size() == 3) {
 			if(queueCountdown == true) {
 				queueTask.cancel();
 				queueCountdown = false;
@@ -254,8 +279,10 @@ public class Game implements Listener {
 			
 			for(Builder builder : builders) {
 				builder.sendMessage(BuildIt.prefix + ChatColor.RED + "Not enough players to continue");
-				
-				builders.remove(builder);
+			}
+			
+			for(int i = 0; i < builders.size(); i++) {
+				Game.removePlayer(i, true);
 			}
 			
 			playing = false;
@@ -269,12 +296,27 @@ public class Game implements Listener {
 	}
 
 	public static void start() {
+		BuildIt.plugin.getLogger().info("Game start");
+		buildersAtStart = builders.size();
 		for(Builder builder : builders) {
 			builder.teleport(BuildIt.plugin.spawn);
 			builder.removeInventory();
 		}
 		
+		BuildIt.plugin.teamOne.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		BuildIt.plugin.teamTwo.setPrefix("");
+		
 		playing = true;
+		Round.number = -1;
+		Turn.number = -1;
 		Turn.resetBuildArea();
 		Round.next();
 	}
@@ -324,14 +366,13 @@ public class Game implements Listener {
 						
 						Turn.guessed = true;
 					} else {
-						guesser.addScore(1);
 						for(Builder builder : builders) {
 							builder.sendMessage(BuildIt.prefix + ChatColor.GOLD + player.getName() + ChatColor.WHITE + " has also guessed the word! " + ChatColor.RESET + ChatColor.GREEN + "[+1]");
 						}
 						
 						AbsoluteCraft.tokens.add(player.getUniqueId(), player.getName(), 1);
 						AbsoluteCraft.leaderboard.add(player.getName(), "buildit", 1);
-						Turn.chosen.addScore(1);
+						guesser.addScore(1);
 					}
 					
 					AbsoluteCraft.leaderboard.add(player.getName(), "buildit", 1);
@@ -347,9 +388,10 @@ public class Game implements Listener {
 						builder.sendMessage(BuildIt.prefix + ChatColor.BOLD + player.getName() + ChatColor.RESET + ChatColor.GRAY + ": " + ChatColor.WHITE + guess);
 					}
 				}
+				
+				event.setCancelled(true);
+				return;
 			}
-			event.setCancelled(true);
-			return;
 		}
 	}
 
@@ -383,7 +425,6 @@ public class Game implements Listener {
 	
 	@EventHandler
 	public void onPlayerInteract(PlayerInteractEvent event) {
-		BuildIt.plugin.getLogger().info(event.getAction().toString());
 		if(playing == true && event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
 			if(getBuilderByName(event.getPlayer().getName()) != -1) {
 				Builder builder = builders.get(getBuilderByName(event.getPlayer().getName()));

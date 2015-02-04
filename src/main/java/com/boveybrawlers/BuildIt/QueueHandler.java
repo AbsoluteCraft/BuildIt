@@ -3,7 +3,7 @@ package com.boveybrawlers.BuildIt;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class QueueHandler extends BukkitRunnable {
-	private int time;
+	public int time;
 	
 	public QueueHandler(int time) {
 		this.time = time;
